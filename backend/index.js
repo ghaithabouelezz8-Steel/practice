@@ -89,8 +89,8 @@ app.put('/api/notes/:id', (request, response) => {
 })
 
 const PORT = process.env.PORT || 3001
-<<<<<<< HEAD
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
-=======
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
->>>>>>> 5a7d47ec6e860a856895cb318f9deae70c63dd39
+
