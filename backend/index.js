@@ -90,8 +90,9 @@ app.delete('/api/notes/:id', (request, response,next) => {
   const id = request.params.id
 Note.findByIdAndDelete(id)
 .then(note=>response.status(204).end())
-})
 .catch(error=>next(error))
+})
+
 
 app.post('/api/notes', (request, response , next) => {
   const body = request.body
