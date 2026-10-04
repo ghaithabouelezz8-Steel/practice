@@ -1,6 +1,9 @@
 const express = require('express')
 const cors = require('cors')
+const mongoose =require('mongoose')
+require('dotenv').config()
 const app = express()
+const Note =require('./models/note')
 
 app.use(express.json())
 app.use(cors())
@@ -8,7 +11,23 @@ app.use(cors())
 // Serve static React app from dist
 app.use(express.static('dist'))
 
-let notes = [
+
+const errorHandler=(error,request,response,next)=>{
+  console.error(error.message)
+  if(error.name==='CastError')
+    return response.status(400).send({error:'malformated id '})
+  else if(error.name==='ValidationError')
+    return response.status(400).json({error:error.message})
+  next(error)
+}
+
+const unknownEndpoints=(request,response)=>{
+  response.status(404).send({error:'unkown endpoint'})
+}
+
+
+
+/*let notes = [
   {
     id: "1",
     content: "HTML is easy",
@@ -24,7 +43,7 @@ let notes = [
     content: "GET and POST are the most important methods of HTTP protocol",
     important: true
   }
-]
+]*/
 
 const generatedId = () => {
   const maxId = notes.length > 0
@@ -33,62 +52,92 @@ const generatedId = () => {
   return String(maxId + 1)
 }
 
+
+
 // REMOVED app.get('/', ...) so express.static('dist') serves index.html at root
 
-app.get('/api/notes', (request, response) => {
-  response.json(notes)
+app.get('/api/notes', (request, response,next) => {
+  Note.find({}).then(notes=>{response.json(notes)})
+ .catch(error=>next(error))
 })
 
-app.get('/api/notes/:id', (request, response) => {
-  const id = request.params.id
+app.get('/api/notes/:id', (request, response , next) => {
+  /*const id = request.params.id
   const note = notes.find(note => note.id === id)
   if (note) {
     response.json(note)
   } else {
     response.status(404).end()
   }
+}*/
+Note.findById(request.params.id)
+.then(note=>{
+  if(note)
+    response.json(note)
+
+else
+  response.status(404).end()
+
+})
+.catch(error=>next(error)
+  /*console.log(error)
+  response.status(400).send({error:'id malformatted'})*/
+)
+
 })
 
-app.delete('/api/notes/:id', (request, response) => {
+app.delete('/api/notes/:id', (request, response,next) => {
   const id = request.params.id
-  // FIX: Assign to outer 'notes' variable instead of declaring local 'const notes'
-  notes = notes.filter(note => note.id !== id)
-  response.status(204).end()
+Note.findByIdAndDelete(id)
+.then(note=>response.status(204).end())
 })
+.catch(error=>next(error))
 
-app.post('/api/notes', (request, response) => {
+app.post('/api/notes', (request, response , next) => {
   const body = request.body
-  if (!body.content) {
-    return response.status(400).json({ error: 'content missing' })
-  }
 
-  const note = {
+
+  const note = new Note({
     content: body.content,
     important: Boolean(body.important) || false,
-    id: generatedId()
+   
+  })
+note.save().then(
+  result=>{
+    response.json(result)
   }
-
-  notes = notes.concat(note)
-  response.json(note)
+  
+)
+.catch(error=>next(error))
+  
 })
 
-app.put('/api/notes/:id', (request, response) => {
+app.put('/api/notes/:id', (request, response , next) => {
   const id = request.params.id
-  const body = request.body
+  const important = request.body.important
+  const content = request.body.content
+  // or const{content , important}=request.body
+  
 
-  const note = notes.find(n => n.id === id)
-  if (!note) {
-    return response.status(404).json({ error: 'note not found' })
+  Note.findById(id).then(note=>
+    {if (!note) {
+    return response.status(404).end()
   }
 
-  const updatedNote = { ...note, important: body.important }
-  // FIX: Reassign outer 'notes' array with updated item
-  notes = notes.map(n => n.id === id ? updatedNote : n)
+note.content=content
+note.important=important
 
-  response.json(updatedNote)
+  return note.save()
+  .then(updatedNote=>{
+response.json(updatedNote)
+  })
 })
+.catch(error=>next(error))})
 
-const PORT = process.env.PORT || 3001
+app.use(unknownEndpoints)
+app.use(errorHandler)
+
+const PORT = process.env.PORT 
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
 
