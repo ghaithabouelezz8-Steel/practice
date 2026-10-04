@@ -115,9 +115,9 @@ note.save().then(
 
 app.put('/api/notes/:id', (request, response , next) => {
   const id = request.params.id
-  const important = request.body.important
-  const content = request.body.content
-  // or const{content , important}=request.body
+  //const important = request.body.important
+ // const content = request.body.content
+   const{content , important}=request.body
   
 
   Note.findById(id).then(note=>
